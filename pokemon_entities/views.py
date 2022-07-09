@@ -73,6 +73,16 @@ def show_pokemon(request, pokemon_id):
                         pokemon.previous_evolution.image.url) if pokemon.image else '',
                 }
             })
+        next_pokemon=pokemon.next_evolution.first()
+        if next_pokemon:
+            requested_pokemon.update({'next_evolution':
+                {
+                    'title_ru': next_pokemon.title,
+                    'pokemon_id': next_pokemon.id,
+                    'img_url': request.build_absolute_uri(
+                        next_pokemon.image.url) if next_pokemon.image else ''
+                }
+            })
 
     except ObjectDoesNotExist:
         return HttpResponseNotFound('<h1>Такой покемон не найден</h1>')
