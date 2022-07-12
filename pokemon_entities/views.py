@@ -14,15 +14,32 @@ DEFAULT_IMAGE_URL = (
 )
 
 
-def add_pokemon(folium_map, lat, lon, image_url=DEFAULT_IMAGE_URL):
+def add_pokemon(folium_map, request, entity):
+    image_url = request.build_absolute_uri(entity.pokemon.image.url) \
+        if entity.pokemon.image else DEFAULT_IMAGE_URL
     icon = folium.features.CustomIcon(
         image_url,
         icon_size=(50, 50),
     )
+    popup_html = folium.Html(
+        f'''
+        <div><img src="{image_url}" width=50>
+        &nbsp<b>{entity.pokemon.title}</b></div><br>
+        <font color="red"><b>
+        исчезнет: {entity.disappeared_at.strftime("%Y-%m-%d %H:%M")}
+        </b></font><br>
+        Уровень: {entity.level}<br>
+        Здоровье:  {entity.health}<br>
+        Атака: {entity.strength} <br>
+        Защита: {entity.defencr}<br>
+        Выносливость: {entity.stamins}<br>
+        ''', script=True)
+    popup = folium.Popup(popup_html, max_width=200)
     folium.Marker(
-        [lat, lon],
+        [entity.lat, entity.lon],
         # Warning! `tooltip` attribute is disabled intentionally
         # to fix strange folium cyrillic encoding bug
+        popup=popup,
         icon=icon,
     ).add_to(folium_map)
 
@@ -34,11 +51,7 @@ def show_all_pokemons(request):
         appeared_at__lte=now,
         disappeared_at__gte=now)
     for pokemon_entity in current_pokemons:
-        add_pokemon(
-            folium_map, pokemon_entity.lat, pokemon_entity.lon,
-            request.build_absolute_uri(pokemon_entity.pokemon.image.url)
-            if pokemon_entity.pokemon.image else DEFAULT_IMAGE_URL
-        )
+        add_pokemon(folium_map, request, pokemon_entity)
 
     pokemons_on_page = []
     for pokemon in Pokemon.objects.all():
@@ -97,11 +110,7 @@ def show_pokemon(request, pokemon_id):
     )
 
     for pokemon_entity in current_pokemons:
-        add_pokemon(
-            folium_map, pokemon_entity.lat, pokemon_entity.lon,
-            request.build_absolute_uri(pokemon_entity.pokemon.image.url)
-            if pokemon_entity.pokemon.image else DEFAULT_IMAGE_URL
-        )
+        add_pokemon(folium_map, request, pokemon_entity)
 
     return render(request, 'pokemon.html', context={
         'map': folium_map._repr_html_(), 'pokemon': requested_pokemon
